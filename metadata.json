@@ -1,0 +1,6 @@
+{
+  "name": "Chef Claude AI - Smart Recipe & Cooking App",
+  "description": "Generate customized culinary recipes and discover tailored cooking videos based on the ingredients you have on hand.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

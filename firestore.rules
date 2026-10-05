@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUser(data, userId) {
+      return data.uid == userId &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        data.email is string && data.email.size() > 0 && data.email.size() <= 150 &&
+        data.provider is string && data.provider.size() <= 50;
+    }
+
+    function isValidUserPantry(data, userId) {
+      return data.userId == userId &&
+        data.ingredients is list && data.ingredients.size() <= 100;
+    }
+
+    function isValidSavedRecipe(data, userId) {
+      return data.userId == userId &&
+        data.recipeId is string && data.recipeId.size() <= 128 &&
+        data.title is string && data.title.size() <= 200 &&
+        data.recipeData is map;
+    }
+
+    // Users collection and subcollections
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming(), userId);
+      allow update: if isOwner(userId) && isValidUser(incoming(), userId) &&
+        incoming().uid == existing().uid;
+      allow delete: if isOwner(userId);
+
+      // User's Pantry Subcollection
+      match /pantry/{pantryId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidUserPantry(incoming(), userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // User's Saved Recipes Subcollection
+      match /savedRecipes/{savedRecipeId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidSavedRecipe(incoming(), userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
